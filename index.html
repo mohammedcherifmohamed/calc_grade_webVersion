@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semester Grade Calculator - Editable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .grade-cell input {
+            width: 80px;
+        }
+        .module-header {
+            transition: all 0.3s ease;
+        }
+        .module-header:hover {
+            transform: translateY(-2px);
+        }
+        .editable-field {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+        .editable-field:hover {
+            background-color: #f3f4f6;
+        }
+        .editing {
+            background-color: #e5e7eb;
+            border: 2px solid #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-800 mb-2">
+                <i class="fas fa-calculator mr-3"></i>Semester Grade Calculator
+            </h1>
+            <p class="text-gray-600">Fully customizable module calculator with localStorage support</p>
+            <div class="flex flex-wrap justify-center gap-3 mt-4">
+                <button id="saveBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                    <i class="fas fa-save mr-2"></i>Save All Data
+                </button>
+                <button id="loadBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                    <i class="fas fa-folder-open mr-2"></i>Load Saved
+                </button>
+                <button id="clearBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+                    <i class="fas fa-trash-alt mr-2"></i>Clear All
+                </button>
+                <button id="addModuleBtn" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition">
+                    <i class="fas fa-plus mr-2"></i>Add Module
+                </button>
+                <button id="resetModulesBtn" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition">
+                    <i class="fas fa-undo mr-2"></i>Reset to Default
+                </button>
+            </div>
+        </header>
+
+        <!-- Module Type Legend -->
+        <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-3">Module Types Legend (Click to edit)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <div class="w-4 h-4 bg-blue-500 rounded-full mr-3"></div>
+                    <div>
+                        <span class="font-semibold">Type 0:</span> Exam Only (Course)
+                    </div>
+                </div>
+                <div class="flex items-center p-3 bg-green-50 rounded-lg">
+                    <div class="w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+                    <div>
+                        <span class="font-semibold">Type 1:</span> Exam + TD
+                    </div>
+                </div>
+                <div class="flex items-center p-3 bg-purple-50 rounded-lg">
+                    <div class="w-4 h-4 bg-purple-500 rounded-full mr-3"></div>
+                    <div>
+                        <span class="font-semibold">Type 2:</span> Exam + TD + TP
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-sm text-gray-600">
+                <p><i class="fas fa-info-circle mr-2"></i>Click on module names, coefficients, or type values to edit them directly.</p>
+            </div>
+        </div>
+
+        <!-- Modules Table -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-800 text-white">
+                        <tr>
+                            <th class="py-4 px-4 text-left">Module (Click to edit)</th>
+                            <th class="py-4 px-4 text-center">Coeff (Click to edit)</th>
+                            <th class="py-4 px-4 text-center">Type (Click to edit)</th>
+                            <th class="py-4 px-4 text-center">Exam</th>
+                            <th class="py-4 px-4 text-center">TD</th>
+                            <th class="py-4 px-4 text-center">TP</th>
+                            <th class="py-4 px-4 text-center">Final Grade</th>
+                            <th class="py-4 px-4 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modulesTable">
+                        <!-- Rows will be generated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Calculation Results -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Module Results -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-bold text-blue-800 mb-4 border-b pb-2">
+                    <i class="fas fa-list-alt mr-2"></i>Module Results
+                </h2>
+                <div id="moduleResults" class="space-y-3 max-h-80 overflow-y-auto p-2">
+                    <!-- Module results will appear here -->
+                </div>
+            </div>
+
+            <!-- Semester Average -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-bold text-blue-800 mb-4 border-b pb-2">
+                    <i class="fas fa-chart-line mr-2"></i>Semester Summary
+                </h2>
+                <div class="text-center py-6">
+                    <div class="text-5xl font-bold text-blue-600 mb-2" id="semesterAverage">0.00</div>
+                    <div class="text-gray-600 font-medium">Semester Average</div>
+                    
+                    <div class="mt-8 grid grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <div class="text-2xl font-bold text-gray-800" id="sumWeighted">0</div>
+                            <div class="text-gray-600 text-sm">Sum Weighted</div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <div class="text-2xl font-bold text-gray-800" id="sumCoeff">0</div>
+                            <div class="text-gray-600 text-sm">Sum Coefficients</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Module count and info -->
+                    <div class="mt-6 bg-white p-4 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <div class="text-left">
+                                <div class="text-lg font-bold text-gray-800" id="moduleCount">0</div>
+                                <div class="text-gray-600 text-sm">Total Modules</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-gray-800" id="totalCoeff">0</div>
+                                <div class="text-gray-600 text-sm">Total Coefficient</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status indicator -->
+                    <div class="mt-6">
+                        <div id="statusIndicator" class="inline-flex items-center px-4 py-2 rounded-full text-white font-medium">
+                            <i class="fas fa-info-circle mr-2"></i>Enter grades to calculate
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Module Modal -->
+        <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Edit Module</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Module Name</label>
+                        <input type="text" id="editModuleName" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Coefficient</label>
+                        <input type="number" min="1" max="10" id="editModuleCoeff" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Type</label>
+                        <select id="editModuleType" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="0">Type 0: Exam Only</option>
+                            <option value="1">Type 1: Exam + TD</option>
+                            <option value="2">Type 2: Exam + TD + TP</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="cancelEditBtn" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                    <button id="saveEditBtn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm mt-8 pt-4 border-t border-gray-300">
+            <p>All changes are automatically saved to your browser's local storage</p>
+            <p class="mt-1">Click on any module field to edit it. Add new modules or reset to defaults anytime.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Default module data - same as in the C program
+        const defaultModules = [
+            { name: "Analysis", coeff: 2, type: 2 },
+            { name: "AI", coeff: 3, type: 1 },
+            { name: "PLD", coeff: 3, type: 1 },
+            { name: "BDD", coeff: 4, type: 1 },
+            { name: "SOFTWARE", coeff: 2, type: 2 },
+            { name: "MOBILE Development", coeff: 2, type: 1 },
+            { name: "COMPILATION", coeff: 4, type: 2 }
+        ];
+
+        // Initialize modules and grades
+        let modules = JSON.parse(JSON.stringify(defaultModules)); // Deep copy
+        let grades = [];
+
+        // DOM elements
+        const modulesTable = document.getElementById('modulesTable');
+        const moduleResults = document.getElementById('moduleResults');
+        const semesterAverage = document.getElementById('semesterAverage');
+        const sumWeighted = document.getElementById('sumWeighted');
+        const sumCoeff = document.getElementById('sumCoeff');
+        const moduleCount = document.getElementById('moduleCount');
+        const totalCoeff = document.getElementById('totalCoeff');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const saveBtn = document.getElementById('saveBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const addModuleBtn = document.getElementById('addModuleBtn');
+        const resetModulesBtn = document.getElementById('resetModulesBtn');
+        
+        // Modal elements
+        const editModal = document.getElementById('editModal');
+        const editModuleName = document.getElementById('editModuleName');
+        const editModuleCoeff = document.getElementById('editModuleCoeff');
+        const editModuleType = document.getElementById('editModuleType');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        
+        // Track which module is being edited
+        let editingModuleIndex = -1;
+
+        // Initialize the application
+        function init() {
+            // Initialize grades array
+            resetGradesArray();
+            
+            // Load saved data if exists
+            loadFromLocalStorage();
+            
+            // Initialize the table
+            initializeTable();
+            
+            // Update results display
+            updateResults();
+        }
+
+        // Reset grades array based on current modules
+        function resetGradesArray() {
+            grades = modules.map(() => ({
+                exam: 0,
+                td: 0,
+                tp: 0,
+                finalGrade: 0
+            }));
+        }
+
+        // Initialize the table
+        function initializeTable() {
+            modulesTable.innerHTML = '';
+            
+            modules.forEach((module, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-gray-50' : 'bg-white';
+                row.innerHTML = `
+                    <td class="py-4 px-4">
+                        <div class="editable-field module-name font-bold text-gray-800" data-index="${index}" data-field="name">${module.name}</div>
+                        <div class="text-xs text-gray-500 mt-1">Type ${module.type}</div>
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <span class="editable-field inline-block bg-blue-100 text-blue-800 font-bold py-1 px-3 rounded-full" data-index="${index}" data-field="coeff">
+                            ${module.coeff}
+                        </span>
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <span class="editable-field inline-block ${getTypeColor(module.type)} text-white text-xs font-bold py-1 px-3 rounded-full" data-index="${index}" data-field="type">
+                            Type ${module.type}
+                        </span>
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <input type="number" min="0" max="20" step="0.25" 
+                               class="exam-input grade-cell border border-gray-300 rounded px-3 py-2 text-center" 
+                               data-index="${index}" data-type="exam" 
+                               placeholder="0-20" value="${grades[index].exam}">
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        ${module.type === 0 ? 
+                            '<span class="text-gray-400">N/A</span>' : 
+                            `<input type="number" min="0" max="20" step="0.25" 
+                                    class="td-input grade-cell border border-gray-300 rounded px-3 py-2 text-center" 
+                                    data-index="${index}" data-type="td" 
+                                    placeholder="0-20" value="${grades[index].td}">`
+                        }
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        ${module.type === 2 ? 
+                            `<input type="number" min="0" max="20" step="0.25" 
+                                    class="tp-input grade-cell border border-gray-300 rounded px-3 py-2 text-center" 
+                                    data-index="${index}" data-type="tp" 
+                                    placeholder="0-20" value="${grades[index].tp}">` : 
+                            '<span class="text-gray-400">N/A</span>'
+                        }
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <div class="final-grade font-bold text-lg" id="finalGrade${index}">
+                            ${grades[index].finalGrade.toFixed(2)}
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <div class="flex space-x-2 justify-center">
+                            <button class="edit-module-btn p-2 text-blue-500 hover:text-blue-700 transition" data-index="${index}" title="Edit Module">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-module-btn p-2 text-red-500 hover:text-red-700 transition" data-index="${index}" title="Delete Module">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                modulesTable.appendChild(row);
+            });
+            
+            // Add event listeners to all grade inputs
+            document.querySelectorAll('.grade-cell').forEach(input => {
+                input.addEventListener('input', handleGradeInput);
+                input.addEventListener('change', handleGradeInput);
+            });
+            
+            // Add event listeners to editable fields
+            document.querySelectorAll('.editable-field').forEach(field => {
+                field.addEventListener('click', handleEditableFieldClick);
+            });
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.edit-module-btn').forEach(btn => {
+                btn.addEventListener('click', handleEditModule);
+            });
+            
+            document.querySelectorAll('.delete-module-btn').forEach(btn => {
+                btn.addEventListener('click', handleDeleteModule);
+            });
+        }
+
+        // Get type badge color
+        function getTypeColor(type) {
+            const colors = {
+                0: 'bg-blue-500',
+                1: 'bg-green-500',
+                2: 'bg-purple-500'
+            };
+            return colors[type] || 'bg-gray-500';
+        }
+
+        // Handle editable field click
+        function handleEditableFieldClick(event) {
+            const field = event.currentTarget;
+            const index = parseInt(field.dataset.index);
+            const fieldType = field.dataset.field;
+            
+            // Open edit modal
+            openEditModal(index);
+        }
+
+        // Open edit modal
+        function openEditModal(index) {
+            editingModuleIndex = index;
+            const module = modules[index];
+            
+            // Set modal values
+            editModuleName.value = module.name;
+            editModuleCoeff.value = module.coeff;
+            editModuleType.value = module.type;
+            
+            // Show modal
+            editModal.classList.remove('hidden');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            editingModuleIndex = -1;
+        }
+
+        // Handle edit module button click
+        function handleEditModule(event) {
+            const index = parseInt(event.currentTarget.dataset.index);
+            openEditModal(index);
+        }
+
+        // Handle delete module button click
+        function handleDeleteModule(event) {
+            const index = parseInt(event.currentTarget.dataset.index);
+            const moduleName = modules[index].name;
+            
+            if (confirm(`Are you sure you want to delete "${moduleName}"?`)) {
+                // Remove module and its grades
+                modules.splice(index, 1);
+                grades.splice(index, 1);
+                
+                // Update table and results
+                initializeTable();
+                updateResults();
+                
+                // Save to localStorage
+                saveToLocalStorage();
+                
+                showNotification(`"${moduleName}" deleted successfully!`, 'green');
+            }
+        }
+
+        // Handle grade input
+        function handleGradeInput(event) {
+            const index = parseInt(event.target.dataset.index);
+            const type = event.target.dataset.type;
+            let value = parseFloat(event.target.value);
+            
+            // Validate input
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 20) value = 20;
+            
+            // Update grades array
+            grades[index][type] = value;
+            
+            // Calculate final grade for this module
+            calculateModuleGrade(index);
+            
+            // Update display
+            updateResults();
+            
+            // Save to localStorage
+            saveToLocalStorage();
+        }
+
+        // Calculate final grade for a module
+        function calculateModuleGrade(index) {
+            const module = modules[index];
+            const grade = grades[index];
+            
+            if (module.type === 0) {
+                // Exam only
+                grade.finalGrade = grade.exam;
+            } else if (module.type === 1) {
+                // Exam + TD
+                grade.finalGrade = grade.exam * 0.6 + grade.td * 0.4;
+            } else if (module.type === 2) {
+                // Exam + TD + TP
+                const control = (grade.td + grade.tp) / 2;
+                grade.finalGrade = grade.exam * 0.6 + control * 0.4;
+            }
+            
+            // Update the final grade display
+            const finalGradeElement = document.getElementById(`finalGrade${index}`);
+            if (finalGradeElement) {
+                finalGradeElement.textContent = grade.finalGrade.toFixed(2);
+                
+                // Color code based on grade
+                if (grade.finalGrade >= 10) {
+                    finalGradeElement.className = 'final-grade font-bold text-lg text-green-600';
+                } else {
+                    finalGradeElement.className = 'final-grade font-bold text-lg text-red-600';
+                }
+            }
+        }
+
+        // Update all results
+        function updateResults() {
+            let totalWeighted = 0;
+            let totalCoeffValue = 0;
+            
+            // Update module results list
+            moduleResults.innerHTML = '';
+            
+            modules.forEach((module, index) => {
+                const grade = grades[index];
+                totalWeighted += grade.finalGrade * module.coeff;
+                totalCoeffValue += module.coeff;
+                
+                // Add to module results list
+                const resultItem = document.createElement('div');
+                resultItem.className = 'flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg';
+                
+                const gradeColor = grade.finalGrade >= 10 ? 'text-green-600' : 'text-red-600';
+                
+                resultItem.innerHTML = `
+                    <div class="font-medium">${module.name} <span class="text-xs text-gray-500">(Coeff ${module.coeff})</span></div>
+                    <div class="flex items-center">
+                        <span class="${gradeColor} font-bold text-lg">${grade.finalGrade.toFixed(2)}</span>
+                    </div>
+                `;
+                moduleResults.appendChild(resultItem);
+            });
+            
+            // Calculate semester average
+            const average = totalCoeffValue > 0 ? totalWeighted / totalCoeffValue : 0;
+            
+            // Update summary elements
+            semesterAverage.textContent = average.toFixed(2);
+            sumWeighted.textContent = totalWeighted.toFixed(2);
+            sumCoeff.textContent = totalCoeffValue;
+            moduleCount.textContent = modules.length;
+            totalCoeff.textContent = totalCoeffValue;
+            
+            // Update status indicator
+            updateStatusIndicator(average);
+            
+            // Color code semester average
+            if (average >= 10) {
+                semesterAverage.className = 'text-5xl font-bold text-green-600 mb-2';
+            } else {
+                semesterAverage.className = 'text-5xl font-bold text-red-600 mb-2';
+            }
+        }
+
+        // Update status indicator based on average
+        function updateStatusIndicator(average) {
+            if (average === 0) {
+                statusIndicator.innerHTML = '<i class="fas fa-info-circle mr-2"></i>Enter grades to calculate';
+                statusIndicator.className = 'inline-flex items-center px-4 py-2 rounded-full bg-blue-500 text-white font-medium';
+            } else if (average >= 10) {
+                statusIndicator.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Passing semester';
+                statusIndicator.className = 'inline-flex items-center px-4 py-2 rounded-full bg-green-500 text-white font-medium';
+            } else {
+                statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Needs improvement';
+                statusIndicator.className = 'inline-flex items-center px-4 py-2 rounded-full bg-red-500 text-white font-medium';
+            }
+        }
+
+        // Add a new module
+        function addNewModule() {
+            const newModule = {
+                name: `New Module ${modules.length + 1}`,
+                coeff: 2,
+                type: 1
+            };
+            
+            modules.push(newModule);
+            grades.push({
+                exam: 0,
+                td: 0,
+                tp: 0,
+                finalGrade: 0
+            });
+            
+            // Update table and results
+            initializeTable();
+            updateResults();
+            
+            // Save to localStorage
+            saveToLocalStorage();
+            
+            showNotification('New module added!', 'green');
+        }
+
+        // Reset modules to default
+        function resetToDefaultModules() {
+            if (confirm('Are you sure you want to reset all modules to default? This will delete your current modules.')) {
+                modules = JSON.parse(JSON.stringify(defaultModules)); // Deep copy
+                resetGradesArray();
+                
+                // Update table and results
+                initializeTable();
+                updateResults();
+                
+                // Save to localStorage
+                saveToLocalStorage();
+                
+                showNotification('Modules reset to default!', 'green');
+            }
+        }
+
+        // Save data to localStorage
+        function saveToLocalStorage() {
+            const data = {
+                modules: modules,
+                grades: grades,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('semesterGradesData', JSON.stringify(data));
+        }
+
+        // Load data from localStorage
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('semesterGradesData');
+            
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    
+                    // Check if data exists
+                    if (data.modules && data.grades) {
+                        modules = data.modules;
+                        grades = data.grades;
+                        
+                        showNotification('Data loaded successfully!', 'blue');
+                    }
+                } catch (error) {
+                    console.error('Error loading saved data:', error);
+                    // If error, use default data
+                    resetGradesArray();
+                }
+            }
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all grades? Module settings will be preserved.')) {
+                // Reset grades only
+                resetGradesArray();
+                
+                // Update inputs
+                document.querySelectorAll('.grade-cell').forEach(input => {
+                    input.value = '';
+                });
+                
+                // Update display
+                modules.forEach((module, index) => {
+                    calculateModuleGrade(index);
+                });
+                updateResults();
+                
+                // Save to localStorage
+                saveToLocalStorage();
+                
+                showNotification('All grades cleared!', 'green');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, color) {
+            // Remove any existing notification
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 transform transition-all duration-300`;
+            
+            // Set color based on type
+            if (color === 'green') {
+                notification.classList.add('bg-green-500');
+            } else if (color === 'red') {
+                notification.classList.add('bg-red-500');
+            } else if (color === 'blue') {
+                notification.classList.add('bg-blue-500');
+            } else if (color === 'yellow') {
+                notification.classList.add('bg-yellow-500');
+            }
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-3"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Event listeners for buttons
+        saveBtn.addEventListener('click', () => {
+            saveToLocalStorage();
+            showNotification('All data saved successfully!', 'green');
+        });
+        
+        loadBtn.addEventListener('click', () => {
+            loadFromLocalStorage();
+            initializeTable();
+            updateResults();
+            showNotification('Data loaded from storage!', 'blue');
+        });
+        
+        clearBtn.addEventListener('click', clearAllData);
+        addModuleBtn.addEventListener('click', addNewModule);
+        resetModulesBtn.addEventListener('click', resetToDefaultModules);
+        
+        // Modal event listeners
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        
+        saveEditBtn.addEventListener('click', () => {
+            if (editingModuleIndex >= 0) {
+                // Update module data
+                modules[editingModuleIndex].name = editModuleName.value;
+                modules[editingModuleIndex].coeff = parseInt(editModuleCoeff.value);
+                modules[editingModuleIndex].type = parseInt(editModuleType.value);
+                
+                // Close modal
+                closeEditModal();
+                
+                // Update table and results
+                initializeTable();
+                updateResults();
+                
+                // Save to localStorage
+                saveToLocalStorage();
+                
+                showNotification('Module updated successfully!', 'green');
+            }
+        });
+        
+        // Close modal when clicking outside
+        editModal.addEventListener('click', (event) => {
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+        });
+        
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>
