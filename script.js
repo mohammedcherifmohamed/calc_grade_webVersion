@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = ''; // Clear existing
         modules.forEach(module => {
             const card = document.createElement('div');
-            card.className = 'glass-card p-6 rounded-xl relative overflow-hidden group';
+            card.className = 'glass-card p-6 rounded-xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300';
 
             let inputsHtml = `
                 <div class="mb-4">
@@ -70,22 +70,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             card.innerHTML = `
-                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                <button class="delete-btn absolute top-2 right-2 p-2 text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity z-20" data-id="${module.id}" title="Remove Module">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>
+                </button>
+
+                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-5 transition-opacity pointer-events-none">
                     <span class="text-6xl font-bold text-white module-icon">${module.name.charAt(0)}</span>
                 </div>
+                
                 <div class="relative z-10">
-                    <div class="flex justify-between items-start mb-4 gap-2">
+                    <div class="flex flex-col gap-3 mb-4">
                         <input type="text" 
                             id="name-${module.id}"
                             class="config-input bg-transparent border-b border-transparent hover:border-slate-500 focus:border-indigo-400 text-xl font-bold text-white w-full outline-none transition-colors"
                             value="${module.name}">
                         
-                        <div class="flex items-center gap-1 bg-indigo-500/20 px-2 py-1 rounded">
-                            <span class="text-indigo-300 text-xs">Coeff:</span>
-                            <input type="number" min="1" max="10"
-                                id="coeff-${module.id}"
-                                class="config-input bg-transparent border-b border-transparent hover:border-slate-500 focus:border-indigo-400 text-indigo-300 text-xs w-8 outline-none text-center font-bold"
-                                value="${module.coeff}">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-1 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+                                <span class="text-indigo-300 text-xs">Coeff:</span>
+                                <input type="number" min="1" max="10"
+                                    id="coeff-${module.id}"
+                                    class="config-input bg-transparent border-b border-transparent hover:border-slate-500 focus:border-indigo-400 text-indigo-300 text-xs w-8 outline-none text-center font-bold"
+                                    value="${module.coeff}">
+                            </div>
+
+                            <select id="type-${module.id}" class="type-select bg-slate-800 text-xs text-slate-400 border border-slate-700 rounded px-2 py-1 outline-none focus:border-indigo-500">
+                                <option value="0" ${module.type === 0 ? 'selected' : ''}>Exam Only</option>
+                                <option value="1" ${module.type === 1 ? 'selected' : ''}>Exam + TD</option>
+                                <option value="2" ${module.type === 2 ? 'selected' : ''}>Exam + TD + TP</option>
+                            </select>
                         </div>
                     </div>
                     ${inputsHtml}
@@ -99,14 +112,49 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(card);
         });
 
+        // Add "Add Module" Card
+        const addCard = document.createElement('div');
+        addCard.className = 'glass-card p-6 rounded-xl flex flex-col justify-center items-center cursor-pointer hover:bg-slate-800/80 group min-h-[300px] border-dashed border-2 border-slate-700 hover:border-indigo-500/50';
+        addCard.innerHTML = `
+            <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 group-hover:text-indigo-400"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </div>
+            <span class="text-slate-400 font-medium group-hover:text-indigo-300">Add Module</span>
+        `;
+        addCard.addEventListener('click', addModule);
+        container.appendChild(addCard);
+
         attachEventListeners();
+    }
+
+    function addModule() {
+        const id = 'mod_' + Date.now();
+        modules.push({
+            id: id,
+            name: "New Module",
+            coeff: 1,
+            type: 1
+        });
+        saveModuleConfig();
+        renderModules();
+        calculateAll();
+    }
+
+    function removeModule(id) {
+        if (confirm('Are you sure you want to delete this module?')) {
+            modules = modules.filter(m => m.id !== id);
+            delete savedData[id];
+            saveModuleConfig();
+            saveGrades(); // Save cleaned up grades
+            renderModules();
+            calculateAll();
+        }
     }
 
     function attachEventListeners() {
         // Grade inputs
         document.querySelectorAll('.grade-input').forEach(input => {
             input.addEventListener('input', () => {
-                // Save grade data
                 saveGrades();
                 calculateAll();
             });
@@ -116,22 +164,44 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.config-input').forEach(input => {
             input.addEventListener('input', (e) => {
                 const parts = e.target.id.split('-');
-                const type = parts[0]; // 'name' or 'coeff'
+                const field = parts[0];
                 const id = parts[1];
 
-                const moduleIndex = modules.findIndex(m => m.id === id);
-                if (moduleIndex > -1) {
-                    if (type === 'name') {
-                        modules[moduleIndex].name = e.target.value;
-                        // Update background icon letter
+                const module = modules.find(m => m.id === id);
+                if (module) {
+                    if (field === 'name') {
+                        module.name = e.target.value;
                         const icon = e.target.closest('.glass-card').querySelector('.module-icon');
                         if (icon) icon.textContent = e.target.value.charAt(0) || '?';
-                    } else if (type === 'coeff') {
-                        modules[moduleIndex].coeff = parseFloat(e.target.value) || 1;
+                    } else if (field === 'coeff') {
+                        module.coeff = parseFloat(e.target.value) || 1;
                     }
                     saveModuleConfig();
-                    calculateAll(); // Re-calc average since coeff might change
+                    calculateAll();
                 }
+            });
+        });
+
+        // Type selection
+        document.querySelectorAll('.type-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const id = e.target.id.split('-')[1];
+                const module = modules.find(m => m.id === id);
+                if (module) {
+                    module.type = parseInt(e.target.value);
+                    saveModuleConfig();
+                    renderModules(); // Re-render to show/hide fields
+                    calculateAll();
+                }
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                removeModule(id);
             });
         });
     }
@@ -139,16 +209,19 @@ document.addEventListener('DOMContentLoaded', () => {
     resetButton.addEventListener('click', () => {
         if (confirm('Clear all grades? (Module names and coefficients will stay)')) {
             localStorage.removeItem('grades');
+            // Clear in-memory object too
+            for (const key in savedData) delete savedData[key];
+
             document.querySelectorAll('.grade-input').forEach(input => input.value = '');
             calculateAll();
         }
     });
 
     restoreBtn.addEventListener('click', () => {
-        if (confirm('Restore original modules? This will reset names, coefficients, AND delete all grades.')) {
+        if (confirm('Restore original modules? This will reset names, coefficients, custom modules, AND delete all grades.')) {
             localStorage.removeItem('modulesConfig');
             localStorage.removeItem('grades');
-            location.reload(); // Simplest way to reset state
+            location.reload();
         }
     });
 
@@ -167,6 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const tp = tpInput ? (parseFloat(tpInput.value) || 0) : 0;
 
             let moduleAvg = 0;
+
+            // Check current input values based on *current* DOM state, 
+            // but rely on module.type for calculation logic.
+            // Note: renderModules() ensures DOM matches module.type.
 
             if (module.type === 0) {
                 moduleAvg = exam;
@@ -209,19 +286,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveGrades() {
-        const data = {};
+        // Only save grades for currently existing modules (cleanup happens in removeModule)
         modules.forEach(module => {
             const examInput = document.getElementById(`exam-${module.id}`);
             const tdInput = document.getElementById(`td-${module.id}`);
             const tpInput = document.getElementById(`tp-${module.id}`);
 
-            data[module.id] = {
+            savedData[module.id] = {
                 exam: examInput ? examInput.value : null,
                 td: tdInput ? tdInput.value : null,
                 tp: tpInput ? tpInput.value : null
             };
         });
-        localStorage.setItem('grades', JSON.stringify(data));
+        localStorage.setItem('grades', JSON.stringify(savedData));
     }
 
     function saveModuleConfig() {
